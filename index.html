@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aral Study Tool</title>
+<meta name="description" content="Aral turns your notes into a summary, flashcards, a practice quiz and key terms.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #F7F7F5; --fg: #121417; --muted: #5E6570; --faint: #8A919B; --line: #E2E4E7; --soft: #EEEFEC; --card: #FFFFFF;
+  --accent: #0B7A5E; --accent-soft: #E3F1EB; --on-accent: #FFFFFF;
+  --good: #0B7A5E; --good-soft: #E3F1EB; --bad: #B42318; --bad-soft: #FDECEA; --warn-soft: #FBF0E4; --warn: #8A4B0F;
+  --font-body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1114; --fg: #E8EBEE; --muted: #98A1AC; --faint: #6B7480; --line: #232930; --soft: #161A1F; --card: #13171B;
+    --accent: #5FD8AC; --accent-soft: #12231D; --on-accent: #0E1114;
+    --good: #5FD8AC; --good-soft: #12231D; --bad: #F97066; --bad-soft: #2A1614; --warn-soft: #2A2014; --warn: #F2B266;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; padding: 0 max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 920px; margin: 0 auto; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden] { display: none !important; }
+
+header.bar { display: flex; align-items: center; gap: 12px; padding: calc(14px + env(safe-area-inset-top)) 0 14px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: inherit; }
+.brand b { font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+.brand span { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.spacer { flex: 1; }
+.pill { font-family: var(--font-mono); font-size: 12px; background: none; color: var(--muted); border: 1px solid var(--line); padding: 4px 11px; border-radius: 3px; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.pill:hover { color: var(--fg); border-color: var(--muted); }
+.mode { font-family: var(--font-mono); font-size: 11.5px; padding: 3px 8px; border-radius: 3px; background: var(--warn-soft); color: var(--warn); white-space: nowrap; }
+.mode.live { background: var(--accent-soft); color: var(--accent); }
+
+.intro { padding: 32px 0 6px; }
+h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing: -.03em; line-height: 1.05; }
+.intro p { margin: 10px 0 0; color: var(--muted); max-width: 60ch; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin-top: 18px; }
+.card h2 { margin: 0 0 12px; font-family: var(--font-mono); font-weight: 500; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+/* input */
+textarea { width: 100%; min-height: 220px; resize: vertical; padding: 14px; border: 1.5px solid var(--line); border-radius: 6px; background: var(--bg); font-size: 15.5px; line-height: 1.6; }
+textarea:focus { outline: none; border-color: var(--accent); }
+.drop { position: relative; }
+.drop.over textarea { border-color: var(--accent); border-style: dashed; background: var(--accent-soft); }
+.input-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.input-foot .count { font-family: var(--font-mono); font-size: 12px; }
+.input-foot .count.over { color: var(--bad); }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.file-label { color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+.options { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; margin-top: 18px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > span { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: var(--card); flex-wrap: wrap; }
+.seg button { background: none; border: 0; padding: 8px 13px; font-size: 14px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 600; }
+select { height: 38px; padding: 0 28px 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--card); font-size: 14px; cursor: pointer; }
+.btn { height: 46px; padding: 0 22px; border-radius: 6px; border: 1.5px solid var(--fg); background: var(--fg); color: var(--bg); font-weight: 700; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.ghost { background: none; color: var(--fg); font-weight: 600; height: 38px; padding: 0 14px; font-size: 14px; }
+.btn.ghost:hover { border-color: var(--accent); color: var(--accent); background: none; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.go { margin-left: auto; }
+.err { margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: var(--bad-soft); color: var(--bad); font-size: 14px; display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.err button { background: none; border: 1px solid currentColor; color: inherit; border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 13px; font-weight: 600; }
+
+/* loading */
+.working { display: flex; align-items: center; gap: 14px; }
+.dots { display: inline-flex; gap: 5px; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: bob 1s ease-in-out infinite; }
+.dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes bob { 0%, 100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
+.working .step { color: var(--muted); font-size: 14.5px; }
+.working .linkbtn { margin-left: auto; }
+
+/* results */
+.res-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.res-head h2 { margin: 0; }
+.res-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.notice { font-size: 13px; padding: 8px 12px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); margin-bottom: 14px; }
+
+.summary .lead { font-size: 1.08rem; line-height: 1.6; margin: 0 0 14px; }
+.summary ul { margin: 0; padding-left: 20px; }
+.summary li + li { margin-top: 8px; }
+.summary li::marker { color: var(--accent); }
+
+.terms { margin: 0; display: grid; gap: 0; }
+.terms div { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.terms div:last-child { border-bottom: 0; }
+.terms dt { font-weight: 700; }
+.terms dd { margin: 0; color: var(--muted); }
+
+.fc-stage { perspective: 1200px; }
+.fc { position: relative; height: 240px; cursor: pointer; transform-style: preserve-3d; transition: transform .45s ease; border-radius: 10px; }
+.fc.flip { transform: rotateY(180deg); }
+.fc .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1.5px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 24px 28px; background: var(--bg); }
+.fc .back { transform: rotateY(180deg); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.fc .face small { position: absolute; top: 12px; left: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.fc .front p { font-size: clamp(1.2rem, 3.4vw, 1.6rem); font-weight: 700; letter-spacing: -.01em; margin: 0; }
+.fc .back p { font-size: 1.05rem; margin: 0; max-width: 60ch; }
+.fc-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.fc-bar .pos { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
+.fc-bar .grp { display: flex; gap: 8px; flex-wrap: wrap; }
+.fc-tally { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+.fc-tally b { color: var(--fg); }
+.hint { font-family: var(--font-mono); font-size: 11.5px; color: var(--faint); margin-top: 8px; }
+
+.quiz ol { list-style: none; margin: 0; padding: 0; counter-reset: q; }
+.quiz > ol > li { padding: 16px 0; border-bottom: 1px solid var(--line); counter-increment: q; }
+.quiz > ol > li:last-child { border-bottom: 0; }
+.quiz .q { font-weight: 600; margin: 0 0 10px; }
+.quiz .q::before { content: counter(q) ". "; color: var(--accent); font-family: var(--font-mono); font-weight: 500; }
+.choices { display: grid; gap: 8px; }
+.choices button { text-align: left; background: var(--bg); border: 1.5px solid var(--line); border-radius: 6px; padding: 10px 12px; cursor: pointer; display: flex; gap: 10px; align-items: baseline; }
+.choices button:hover:not(:disabled) { border-color: var(--accent); }
+.choices button span { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.choices button:disabled { cursor: default; }
+.choices button.right { border-color: var(--good); background: var(--good-soft); }
+.choices button.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.explain { margin-top: 10px; font-size: 14px; color: var(--muted); padding-left: 12px; border-left: 2px solid var(--line); }
+.explain b { color: var(--fg); }
+.score { margin-top: 16px; padding: 16px; border-radius: 8px; background: var(--accent-soft); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.score b { font-size: 1.5rem; letter-spacing: -.02em; }
+
+.history { list-style: none; margin: 0; padding: 0; }
+.history li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; align-items: center; }
+.history li:last-child { border-bottom: 0; }
+.history button.open { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: var(--fg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.history button.open:hover { color: var(--accent); }
+.history small { font-family: var(--font-mono); font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-size: 14px; z-index: 50; }
+footer { margin-top: 28px; font-family: var(--font-mono); font-size: 11.5px; color: var(--faint); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+footer a { color: var(--muted); }
+
+@media (max-width: 620px) {
+  .brand span { display: none; }
+  .card { padding: 16px; }
+  .go { margin-left: 0; width: 100%; justify-content: center; }
+  .terms div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .fc { height: 280px; }
+}
+@media (prefers-reduced-motion: reduce) { .fc { transition: none; } .dots i { animation: none; opacity: 1; } }
+@media print {
+  header.bar, .intro, #inputCard, #historyCard, .res-actions, .fc-bar, .hint, footer, .notice { display: none !important; }
+  body { background: #fff; color: #000; }
+  .card { border: 0; padding: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <a class="brand" href="./"><b>Aral</b><span>study tool</span></a>
+    <div class="spacer"></div>
+    <span class="mode" id="modeTag">Demo mode</span>
+    <a class="pill" href="https://romar-zaratan.github.io/projects.html">← Projects</a>
+  </header>
+
+  <div class="intro">
+    <h1>Turn your notes into a study set.</h1>
+    <p>Paste a lesson, a reading or your class notes. Get a summary, flashcards, a practice quiz and the key terms.</p>
+  </div>
+
+  <!-- ============ INPUT ============ -->
+  <section class="card" id="inputCard" aria-labelledby="inTitle">
+    <h2 id="inTitle">Your notes</h2>
+    <div class="drop" id="drop">
+      <label class="sr" for="notes">Notes</label>
+      <textarea id="notes" placeholder="Paste your notes here, or drop a .txt / .md file…"></textarea>
+    </div>
+    <div class="input-foot">
+      <span>
+        <button class="linkbtn" id="sampleBtn" type="button">Use sample notes</button> ·
+        <label class="file-label" for="file">Upload .txt or .md</label><input class="sr" type="file" id="file" accept=".txt,.md,text/plain,text/markdown"> ·
+        <button class="linkbtn" id="clearBtn" type="button">Clear</button>
+      </span>
+      <span class="count" id="count">0 / 12,000</span>
+    </div>
+
+    <div class="options">
+      <div class="field"><span id="outLbl">Make</span>
+        <div class="seg" id="outSeg" role="group" aria-labelledby="outLbl">
+          <button type="button" data-out="summary" aria-pressed="true">Summary</button>
+          <button type="button" data-out="flashcards" aria-pressed="false">Flashcards</button>
+          <button type="button" data-out="quiz" aria-pressed="false">Quiz</button>
+          <button type="button" data-out="terms" aria-pressed="false">Key terms</button>
+        </div>
+      </div>
+      <label class="field"><span>Items</span>
+        <select id="count-sel"><option value="5">5</option><option value="8" selected>8</option><option value="12">12</option></select>
+      </label>
+      <label class="field"><span>Language</span>
+        <select id="lang"><option value="en">English</option><option value="fil">Filipino</option></select>
+      </label>
+      <button class="btn go" id="goBtn" type="button">Generate</button>
+    </div>
+    <div class="err" id="err" role="alert" hidden></div>
+  </section>
+
+  <!-- ============ WORKING ============ -->
+  <section class="card" id="workCard" hidden aria-live="polite">
+    <div class="working"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="step" id="step">Reading your notes…</span><button class="linkbtn" id="cancelBtn" type="button">Cancel</button></div>
+  </section>
+
+  <!-- ============ RESULT ============ -->
+  <section class="card" id="resCard" hidden aria-labelledby="resTitle">
+    <div class="res-head">
+      <h2 id="resTitle">Summary</h2>
+      <div class="res-actions">
+        <button class="btn ghost" id="copyBtn" type="button">Copy</button>
+        <button class="btn ghost" id="dlBtn" type="button">Download .md</button>
+        <button class="btn ghost" id="printBtn" type="button">Print</button>
+      </div>
+    </div>
+    <div class="notice" id="demoNotice">Demo mode: made by a simple offline method that picks key sentences and terms from your notes. It is not AI, so results are rougher.</div>
+    <div id="result"></div>
+  </section>
+
+  <!-- ============ HISTORY ============ -->
+  <section class="card" id="historyCard" hidden aria-labelledby="histTitle">
+    <h2 id="histTitle">Recent</h2>
+    <ul class="history" id="history"></ul>
+  </section>
+
+  <footer>
+    <span id="footMode">Notes stay in your browser in demo mode.</span>
+    <span>Built by <a href="https://romar-zaratan.github.io/">John Romar Francisco</a></span>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* ======================================================================
+   CONFIG
+   API_URL: your backend endpoint (keeps the AI key on the server).
+   Leave empty for demo mode.
+
+   Request  (POST, JSON):
+     { "notes": string, "type": "summary"|"flashcards"|"quiz"|"terms", "count": 5|8|12, "lang": "en"|"fil" }
+   Response (JSON), by type:
+     summary:    { "type":"summary", "title": string, "overview": string, "points": [string] }
+     flashcards: { "type":"flashcards", "title": string, "cards": [{ "front": string, "back": string }] }
+     quiz:       { "type":"quiz", "title": string, "questions": [{ "q": string, "choices": [string x4], "answer": 0-3, "explain": string }] }
+     terms:      { "type":"terms", "title": string, "terms": [{ "term": string, "def": string }] }
+     error:      { "error": string }  with a 4xx/5xx status
+   ====================================================================== */
+var API_URL = '';
+
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var MAX = 12000, MIN = 200;
+  var LIVE = !!API_URL;
+  var state = { type: 'summary', result: null, ctrl: null };
+
+  /* ---------- small helpers ---------- */
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var toastT;
+  function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2500); }
+  function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  function shuffle(a, rnd) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor((rnd || Math.random)() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  /* ---------- mode labels ---------- */
+  $('modeTag').textContent = LIVE ? 'AI mode' : 'Demo mode';
+  $('modeTag').className = 'mode' + (LIVE ? ' live' : '');
+  $('footMode').textContent = LIVE ? 'Your notes are sent to the server only to make your study set.' : 'Notes stay in your browser in demo mode.';
+
+  /* ---------- input ---------- */
+  var SAMPLE = 'Object detection is a computer vision task that finds objects in an image and labels each one. Unlike image classification, which gives one label for the whole picture, object detection returns a bounding box and a class for every object it finds.\n\n' +
+    'A bounding box is a rectangle described by four numbers: the x and y position of one corner, plus its width and height. Each detection also comes with a confidence score between 0 and 1. A confidence score shows how sure the model is that the box contains that class. Developers usually set a confidence threshold, such as 0.5, and ignore weaker detections.\n\n' +
+    'YOLO, short for You Only Look Once, is a family of object detection models. YOLO looks at the whole image in a single pass, which makes it fast enough for real-time use on phones and webcams. YOLOv11n is the nano version of YOLO 11. It is small and quick, so it suits mobile apps, but it is less accurate than the larger versions.\n\n' +
+    'Training a detector needs an annotated dataset. Annotation means drawing a bounding box around every object in every training image and giving it the correct class label. Poor annotation leads to a poor model, so annotation quality matters as much as the amount of data.\n\n' +
+    'Two overlapping boxes are compared with Intersection over Union, or IoU. IoU is the area where the boxes overlap divided by the total area they cover together. Non-maximum suppression is a step that removes duplicate boxes: when several boxes overlap a lot, it keeps only the one with the highest confidence.\n\n' +
+    'Models are judged with precision and recall. Precision is the share of detections that were correct. Recall is the share of real objects that the model managed to find. The mAP metric, or mean average precision, combines precision and recall across all classes into one number.';
+  function updateCount() {
+    var n = $('notes').value.length, c = $('count');
+    c.textContent = n.toLocaleString('en-US') + ' / ' + MAX.toLocaleString('en-US');
+    c.classList.toggle('over', n > MAX);
+  }
+  $('notes').addEventListener('input', updateCount);
+  $('sampleBtn').addEventListener('click', function () { $('notes').value = SAMPLE; updateCount(); hideErr(); });
+  $('clearBtn').addEventListener('click', function () { $('notes').value = ''; updateCount(); $('notes').focus(); });
+  function readFile(f) {
+    if (!f) return;
+    if (!/\.(txt|md)$/i.test(f.name) && !/^text\//.test(f.type)) return showErr('Only .txt and .md files work here. For a PDF or Word file, copy the text and paste it.');
+    if (f.size > 200000) return showErr('That file is too big. Paste the part you want to study instead.');
+    var r = new FileReader();
+    r.onload = function () { $('notes').value = String(r.result); updateCount(); hideErr(); toast('Loaded ' + f.name); };
+    r.onerror = function () { showErr('Could not read that file.'); };
+    r.readAsText(f);
+  }
+  $('file').addEventListener('change', function () { readFile(this.files[0]); this.value = ''; });
+  var drop = $('drop');
+  ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function () { drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function (e) { e.preventDefault(); readFile(e.dataTransfer.files[0]); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-out]'), function (b) {
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-out]'), function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      state.type = b.getAttribute('data-out');
+      $('count-sel').disabled = state.type === 'summary';
+    });
+  });
+  $('count-sel').disabled = true;
+
+  function showErr(msg, retry) {
+    var e = $('err'); e.innerHTML = '<span>' + esc(msg) + '</span>'; e.hidden = false;
+    if (retry) { var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Try again'; b.addEventListener('click', generate); e.appendChild(b); }
+  }
+  function hideErr() { $('err').hidden = true; }
+
+  /* ---------- generate ---------- */
+  var STEPS = { summary: ['Reading your notes…', 'Finding the main ideas…', 'Writing the summary…'], flashcards: ['Reading your notes…', 'Picking key facts…', 'Making cards…'], quiz: ['Reading your notes…', 'Choosing what to test…', 'Writing questions and choices…'], terms: ['Reading your notes…', 'Finding key terms…', 'Matching definitions…'] };
+  $('goBtn').addEventListener('click', generate);
+  $('notes').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generate(); });
+
+  function generate() {
+    hideErr();
+    var notes = $('notes').value.trim(), type = state.type, count = +$('count-sel').value, lang = $('lang').value;
+    if (!notes) return showErr('Paste some notes first, or click "Use sample notes".');
+    if (notes.length < MIN) return showErr('Add a bit more: at least ' + MIN + ' characters gives better results.');
+    if (notes.length > MAX) return showErr('That is ' + notes.length.toLocaleString('en-US') + ' characters. Trim it to ' + MAX.toLocaleString('en-US') + ' or less.');
+
+    if (state.ctrl) state.ctrl.abort();
+    var ctrl = state.ctrl = new AbortController();
+    $('goBtn').disabled = true; $('workCard').hidden = false; $('resCard').hidden = true;
+    var steps = STEPS[type], si = 0; $('step').textContent = steps[0];
+    var stepT = setInterval(function () { si = Math.min(si + 1, steps.length - 1); $('step').textContent = steps[si]; }, 900);
+
+    var job = LIVE ? callApi({ notes: notes, type: type, count: count, lang: lang }, ctrl.signal)
+                   : demoGenerate(notes, type, count, lang, ctrl.signal);
+    job.then(function (res) {
+      if (ctrl !== state.ctrl) return;
+      validate(res, type);
+      state.result = res; showResult(res, true);
+      saveHistory(res, notes);
+    }).catch(function (e) {
+      if (ctrl.signal.aborted) return;
+      showErr(e.message || 'Something went wrong.', true);
+    }).finally(function () {
+      clearInterval(stepT);
+      if (ctrl === state.ctrl) { $('goBtn').disabled = false; $('workCard').hidden = true; state.ctrl = null; }
+    });
+  }
+  $('cancelBtn').addEventListener('click', function () {
+    if (state.ctrl) { state.ctrl.abort(); state.ctrl = null; }
+    $('workCard').hidden = true; $('goBtn').disabled = false; toast('Cancelled');
+  });
+
+  function callApi(body, signal) {
+    var timer = setTimeout(function () { if (state.ctrl) state.ctrl.abort(); }, 60000);
+    return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: signal })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (!r.ok) throw new Error(j.error || (r.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'The server had a problem (' + r.status + ').'));
+          return j;
+        });
+      }, function (e) { throw new Error(signal.aborted ? 'Took too long. Try shorter notes.' : 'Could not reach the server. Check your connection.'); })
+      .finally(function () { clearTimeout(timer); });
+  }
+
+  /* never trust the response shape, even from our own server */
+  function validate(r, type) {
+    var bad = new Error('The result came back in an unexpected format. Try again.');
+    if (!r || r.type !== type) throw bad;
+    var okStr = function (s) { return typeof s === 'string' && s.trim(); };
+    if (type === 'summary' && !(okStr(r.overview) && Array.isArray(r.points) && r.points.length && r.points.every(okStr))) throw bad;
+    if (type === 'flashcards' && !(Array.isArray(r.cards) && r.cards.length && r.cards.every(function (c) { return okStr(c.front) && okStr(c.back); }))) throw bad;
+    if (type === 'terms' && !(Array.isArray(r.terms) && r.terms.length && r.terms.every(function (t) { return okStr(t.term) && okStr(t.def); }))) throw bad;
+    if (type === 'quiz' && !(Array.isArray(r.questions) && r.questions.length && r.questions.every(function (q) {
+      return okStr(q.q) && Array.isArray(q.choices) && q.choices.length >= 2 && q.choices.every(okStr) && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.choices.length;
+    }))) throw bad;
+  }
+
+  /* ======================================================================
+     DEMO GENERATOR: extractive, offline, deterministic. Not AI.
+     ====================================================================== */
+  var STOP = ('a an the and or but if then than so of to in on at by for from with without into onto over under about as is are was were be been being ' +
+    'it its this that these those there here which who whom whose what when where why how not no can could should would may might must will shall do does did ' +
+    'has have had i you he she we they them their our your his her my me us one two three four first also more most less very much many such each every other ' +
+    'some any all only just like same both between while because usually called known often used use uses using make makes made way part well good new').split(' ');
+  var STOPSET = {}; STOP.forEach(function (w) { STOPSET[w] = 1; });
+
+  function sentences(text) {
+    return text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+/g) ? text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+/g).map(function (s) { return s.trim(); }).filter(function (s) { return s.split(' ').length >= 5; }) : [];
+  }
+  function words(s) { return (s.toLowerCase().match(/[a-z][a-z0-9-]+/g) || []).filter(function (w) { return !STOPSET[w] && w.length > 2; }); }
+  function freqOf(sents) { var f = {}; sents.forEach(function (s) { words(s).forEach(function (w) { f[w] = (f[w] || 0) + 1; }); }); return f; }
+  function rank(sents, f) {
+    return sents.map(function (s, i) {
+      var ws = words(s), score = ws.reduce(function (a, w) { return a + (f[w] || 0); }, 0) / Math.max(ws.length, 4);
+      if (/\b(is|are|means|refers to)\b/.test(s)) score *= 1.2;   /* definitions are usually worth keeping */
+      return { s: s, i: i, score: score };
+    }).sort(function (a, b) { return b.score - a.score; });
+  }
+  /* "X is a/the Y" style definitions */
+  function definitions(sents) {
+    var out = [], seen = {};
+    sents.forEach(function (s) {
+      var m = s.match(/^(?:A |An |The )?([A-Z][\w\- ]{1,40}?|[a-z][\w\- ]{1,30}?)(?:,[^,]{3,60},)?\s+(?:is|are|means|refers to)\s+(.{12,})$/);
+      if (!m) return;
+      var term = m[1].trim().replace(/^(a|an|the)\s+/i, ''), def = m[2].replace(/[.!?]+$/, '').trim();
+      if (term.split(' ').length > 5 || STOPSET[term.toLowerCase()] || /^(it|this|that|they|there)$/i.test(term)) return;
+      if (/^(two|three|four|some|many|most|several|these|those|both|all)\b/i.test(term)) return;   /* "Two boxes are…" is not a term */
+      if (/^(\w+ed|usually|often|also|not|always|sometimes)\b/i.test(def)) return;                /* passive "are judged with…" is not a definition */
+      var key = term.toLowerCase(); if (seen[key]) return; seen[key] = 1;
+      out.push({ term: term.charAt(0).toUpperCase() + term.slice(1), def: def.charAt(0).toUpperCase() + def.slice(1) + '.', sent: s });
+    });
+    return out;
+  }
+  function titleFrom(f) { var top = Object.keys(f).sort(function (a, b) { return f[b] - f[a]; }).slice(0, 2); return top.map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' and ') || 'Your notes'; }
+
+  function demoGenerate(text, type, count, lang, signal) {
+    return new Promise(function (resolve, reject) {
+      var t = setTimeout(function () {
+        try {
+          var sents = sentences(text);
+          if (sents.length < 3) throw new Error('Demo mode needs at least 3 full sentences to work with.');
+          var f = freqOf(sents), ranked = rank(sents, f), title = titleFrom(f), defs = definitions(sents), seed = text.length;
+          var rnd = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+          var res;
+          if (type === 'summary') {
+            var pts = ranked.slice(0, Math.min(6, sents.length)).sort(function (a, b) { return a.i - b.i; }).map(function (x) { return x.s; });
+            res = { type: 'summary', title: title, overview: sents[0], points: pts.filter(function (p) { return p !== sents[0]; }).slice(0, 5) };
+            if (!res.points.length) res.points = pts;
+          } else if (type === 'terms') {
+            var terms = defs.slice(0, count).map(function (d) { return { term: d.term, def: d.def }; });
+            if (!terms.length) throw new Error('Demo mode could not find definitions like "X is …" in these notes. Try the sample notes, or AI mode.');
+            res = { type: 'terms', title: title, terms: terms };
+          } else if (type === 'flashcards') {
+            var cards = defs.map(function (d) { return { front: 'What is ' + (/^[A-Z]{2,}|^[A-Z][a-z]+[A-Z]/.test(d.term) ? d.term : d.term.toLowerCase()) + '?', back: d.def }; });
+            ranked.forEach(function (x) {   /* top up with fill-in-the-blank cards from important sentences */
+              if (cards.length >= count) return;
+              var key = words(x.s).sort(function (a, b) { return (f[b] || 0) - (f[a] || 0); })[0];
+              if (!key) return;
+              var re = new RegExp('\\b' + key + '\\b', 'i');
+              if (!re.test(x.s) || cards.some(function (c) { return c.back.indexOf(x.s) >= 0; })) return;
+              cards.push({ front: 'Fill in the blank: ' + x.s.replace(re, '_____'), back: key + ': ' + x.s });
+            });
+            res = { type: 'flashcards', title: title, cards: cards.slice(0, count) };
+          } else {
+            if (defs.length < 4) throw new Error('Demo mode needs at least 4 definitions ("X is …") to build a quiz. Try the sample notes, or AI mode.');
+            var qs = shuffle(defs, rnd).slice(0, count).map(function (d) {
+              var others = shuffle(defs.filter(function (o) { return o.term !== d.term; }), rnd).slice(0, 3).map(function (o) { return o.term; });
+              var choices = shuffle(others.concat(d.term), rnd);
+              return { q: 'Which term matches this description? "' + d.def.replace(/\.$/, '') + '"', choices: choices, answer: choices.indexOf(d.term), explain: d.sent };
+            });
+            res = { type: 'quiz', title: title, questions: qs };
+          }
+          if (lang === 'fil') res.note = 'Demo mode keeps the original language of your notes. Filipino output needs AI mode.';
+          resolve(res);
+        } catch (e) { reject(e); }
+      }, 1400);
+      signal.addEventListener('abort', function () { clearTimeout(t); reject(new Error('aborted')); });
+    });
+  }
+
+  /* ======================================================================
+     RENDER RESULTS
+     ====================================================================== */
+  var NAMES = { summary: 'Summary', flashcards: 'Flashcards', quiz: 'Practice quiz', terms: 'Key terms' };
+  function showResult(res, scroll) {
+    $('resTitle').textContent = NAMES[res.type] + ' · ' + res.title;
+    $('demoNotice').hidden = LIVE && !res.note;
+    $('demoNotice').textContent = (LIVE ? '' : 'Demo mode: made by a simple offline method that picks key sentences and terms from your notes. It is not AI, so results are rougher. ') + (res.note || '');
+    var box = $('result');
+    if (res.type === 'summary') {
+      box.innerHTML = '<div class="summary"><p class="lead">' + esc(res.overview) + '</p><ul>' + res.points.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>';
+    } else if (res.type === 'terms') {
+      box.innerHTML = '<dl class="terms">' + res.terms.map(function (t) { return '<div><dt>' + esc(t.term) + '</dt><dd>' + esc(t.def) + '</dd></div>'; }).join('') + '</dl>';
+    } else if (res.type === 'flashcards') {
+      flashcards(box, res.cards);
+    } else {
+      quiz(box, res.questions);
+    }
+    $('resCard').hidden = false;
+    if (scroll) $('resCard').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  function flashcards(box, cards) {
+    var order = cards.map(function (_, i) { return i; }), pos = 0, known = {}, learning = {};
+    box.innerHTML =
+      '<div class="fc-stage"><div class="fc" id="fc" tabindex="0" role="button" aria-label="Flashcard. Press to flip.">' +
+      '<div class="face front"><small>Question</small><p id="fcFront"></p></div><div class="face back"><small>Answer</small><p id="fcBack"></p></div></div></div>' +
+      '<div class="fc-bar"><span class="pos" id="fcPos"></span><span class="grp">' +
+      '<button class="btn ghost" id="fcPrev" type="button">← Prev</button><button class="btn ghost" id="fcNext" type="button">Next →</button></span>' +
+      '<span class="grp"><button class="btn ghost" id="fcLearn" type="button">Still learning</button><button class="btn ghost" id="fcKnow" type="button">I know this</button><button class="btn ghost" id="fcShuf" type="button">Shuffle</button></span></div>' +
+      '<div class="fc-tally" id="fcTally"></div><div class="hint">Space or Enter flips · ← → to move</div>';
+    var fc = $('fc');
+    function draw() {
+      var c = cards[order[pos]]; fc.classList.remove('flip');
+      $('fcFront').textContent = c.front; $('fcBack').textContent = c.back;
+      $('fcPos').textContent = (pos + 1) + ' of ' + cards.length;
+      $('fcTally').innerHTML = 'Know: <b>' + Object.keys(known).length + '</b> · Still learning: <b>' + Object.keys(learning).length + '</b>';
+    }
+    function go(d) { pos = (pos + d + cards.length) % cards.length; draw(); }
+    fc.addEventListener('click', function () { fc.classList.toggle('flip'); });
+    fc.addEventListener('keydown', function (e) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fc.classList.toggle('flip'); }
+      if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1);
+    });
+    $('fcPrev').addEventListener('click', function () { go(-1); });
+    $('fcNext').addEventListener('click', function () { go(1); });
+    $('fcKnow').addEventListener('click', function () { known[order[pos]] = 1; delete learning[order[pos]]; go(1); });
+    $('fcLearn').addEventListener('click', function () { learning[order[pos]] = 1; delete known[order[pos]]; go(1); });
+    $('fcShuf').addEventListener('click', function () { order = shuffle(order); pos = 0; draw(); toast('Shuffled'); });
+    draw();
+  }
+
+  function quiz(box, qs) {
+    var answered = 0, right = 0;
+    box.innerHTML = '<div class="quiz"><ol>' + qs.map(function (q, qi) {
+      return '<li data-q="' + qi + '"><p class="q">' + esc(q.q) + '</p><div class="choices" role="group">' +
+        q.choices.map(function (c, ci) { return '<button type="button" data-c="' + ci + '"><span>' + 'ABCD'[ci] + '</span>' + esc(c) + '</button>'; }).join('') +
+        '</div><div class="explain" hidden></div></li>';
+    }).join('') + '</ol><div class="score" id="score" hidden></div></div>';
+    box.querySelectorAll('.choices button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var li = b.closest('li'), q = qs[+li.dataset.q], pick = +b.dataset.c, btns = li.querySelectorAll('.choices button');
+        btns.forEach(function (x) { x.disabled = true; });
+        btns[q.answer].classList.add('right');
+        var ok = pick === q.answer; if (!ok) b.classList.add('wrong');
+        answered++; if (ok) right++;
+        var ex = li.querySelector('.explain'); ex.hidden = false;
+        ex.innerHTML = '<b>' + (ok ? 'Correct.' : 'Not quite. The answer is ' + esc(q.choices[q.answer]) + '.') + '</b> ' + esc(q.explain || '');
+        if (answered === qs.length) {
+          var s = $('score'); s.hidden = false;
+          s.innerHTML = '<span><b>' + right + ' / ' + qs.length + '</b> ' + (right === qs.length ? 'Perfect!' : right / qs.length >= .7 ? 'Nice work.' : 'Review the cards and try again.') + '</span><button class="btn ghost" type="button">Retake quiz</button>';
+          s.querySelector('button').addEventListener('click', function () { quiz(box, qs); });
+        }
+      });
+    });
+  }
+
+  /* ---------- export ---------- */
+  function toMarkdown(r) {
+    var md = '# ' + NAMES[r.type] + ': ' + r.title + '\n\n';
+    if (r.type === 'summary') md += r.overview + '\n\n' + r.points.map(function (p) { return '- ' + p; }).join('\n');
+    if (r.type === 'terms') md += r.terms.map(function (t) { return '**' + t.term + '**: ' + t.def; }).join('\n\n');
+    if (r.type === 'flashcards') md += r.cards.map(function (c, i) { return (i + 1) + '. **Q:** ' + c.front + '\n   **A:** ' + c.back; }).join('\n\n');
+    if (r.type === 'quiz') md += r.questions.map(function (q, i) {
+      return (i + 1) + '. ' + q.q + '\n' + q.choices.map(function (c, ci) { return '   ' + 'ABCD'[ci] + '. ' + c; }).join('\n');
+    }).join('\n\n') + '\n\n## Answers\n\n' + r.questions.map(function (q, i) { return (i + 1) + '. ' + 'ABCD'[q.answer] + ' (' + q.choices[q.answer] + ')'; }).join('\n');
+    return md + '\n';
+  }
+  $('copyBtn').addEventListener('click', function () {
+    if (!state.result) return;
+    var md = toMarkdown(state.result);
+    (navigator.clipboard ? navigator.clipboard.writeText(md) : Promise.reject()).then(function () { toast('Copied'); }, function () { toast('Copy failed. Use Download instead.'); });
+  });
+  $('dlBtn').addEventListener('click', function () {
+    if (!state.result) return;
+    var a = document.createElement('a'), url = URL.createObjectURL(new Blob([toMarkdown(state.result)], { type: 'text/markdown' }));
+    a.href = url; a.download = (state.result.title + '-' + state.result.type).toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.md';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+  $('printBtn').addEventListener('click', function () { window.print(); });
+
+  /* ---------- history (results only, last 6) ---------- */
+  function saveHistory(res, notes) {
+    var h = (ls('aral-history') || []).filter(function (x) { return !(x.res.title === res.title && x.res.type === res.type); });
+    h.unshift({ at: Date.now(), res: res, preview: notes.slice(0, 80) });
+    ls('aral-history', h.slice(0, 6)); drawHistory();
+  }
+  function drawHistory() {
+    var h = ls('aral-history') || [], ul = $('history');
+    $('historyCard').hidden = !h.length; ul.innerHTML = '';
+    h.forEach(function (item) {
+      var li = document.createElement('li'), b = document.createElement('button'), s = document.createElement('small');
+      b.className = 'open'; b.type = 'button'; b.textContent = NAMES[item.res.type] + ': ' + item.res.title;
+      b.addEventListener('click', function () { state.result = item.res; showResult(item.res, true); });
+      s.textContent = new Date(item.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + new Date(item.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      li.appendChild(b); li.appendChild(s); ul.appendChild(li);
+    });
+  }
+  drawHistory(); updateCount();
+})();
+</script>
+</body>
+</html>
